@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CHEM 101 Grade Possibilities Calculator</title>
+  <style>
+    :root {
+      --panel: #f4f4f5;
+      --card: #ffffff;
+      --text: #18181b;
+      --muted: #71717a;
+      --border: #d4d4d8;
+      --accent: #2563eb;
+      --accent-bg: #dbeafe;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background: #fff;
+      line-height: 1.45;
+    }
+    .wrap {
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .intro {
+      margin-bottom: 16px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+    thead, tfoot {
+      background: var(--panel);
+    }
+    th, td {
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    thead th { border-top: 0; }
+    th { text-align: left; }
+    .right { text-align: right; }
+    input[type="number"] {
+      width: 130px;
+      max-width: 100%;
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      background: #fff;
+      color: var(--text);
+    }
+    input[type="number"]:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+    .message, .card, .scale {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--card);
+      padding: 16px;
+      margin-top: 18px;
+    }
+    .message {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .validation {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .label {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .big {
+      margin-top: 4px;
+      font-size: 1.55rem;
+      font-weight: 700;
+    }
+    .detail {
+      margin-top: 4px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .possible-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .possible-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .possible-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .scale-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 16px;
+      font-size: 0.9rem;
+    }
+    .muted { color: var(--muted); }
+    button {
+      margin-top: 18px;
+      min-height: 44px;
+      padding: 10px 16px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent-bg);
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .note {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+    .hidden { display: none !important; }
+    @media (max-width: 850px) {
+      .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 560px) {
+      .wrap { padding: 12px; }
+      .summary-grid, .possible-grid, .scale-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+<div id="chem101-grade-widget" class="wrap">
+  <p class="intro">
+    Enter both <strong>Points earned</strong> and <strong>Points available thus far</strong>
+    for each category you want included. Results are calculated only after both values have been entered.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Assignment type</th>
+          <th class="right">Semester total</th>
+          <th>Points earned</th>
+          <th>Points available thus far</th>
+          <th class="right">Future points</th>
+        </tr>
+      </thead>
+      <tbody id="gradeRows"></tbody>
+      <tfoot>
+        <tr>
+          <td><strong>Total</strong></td>
+          <td class="right"><strong>1000</strong></td>
+          <td id="earnedTotalCell" class="right"><strong>—</strong></td>
+          <td id="availableTotalCell" class="right"><strong>—</strong></td>
+          <td id="futureTotalCell" class="right"><strong>1000</strong></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div id="validation" class="validation" role="alert"></div>
+
+  <div id="waitingMessage" class="message">
+    Enter both values for at least one assignment category to see grade calculations.
+  </div>
+
+  <div id="resultsArea" class="hidden">
+    <div class="summary-grid" aria-live="polite">
+      <div class="card">
+        <div class="label">Current grade</div>
+        <div id="currentGrade" class="big">—</div>
+        <div id="currentGradeDetail" class="detail"></div>
+      </div>
+      <div class="card">
+        <div class="label">Points remaining</div>
+        <div id="remainingPoints" class="big">—</div>
+        <div class="detail">Not yet available</div>
+      </div>
+      <div class="card">
+        <div class="label">Highest possible final</div>
+        <div id="maxFinal" class="big">—</div>
+        <div id="maxFinalDetail" class="detail"></div>
+      </div>
+      <div class="card">
+        <div class="label">Possible final range</div>
+        <div id="finalRange" class="big">—</div>
+        <div id="finalRangeDetail" class="detail"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="possible-head">
+        <strong>Which semester grades are still possible?</strong>
+        <span class="muted" style="font-size:0.78rem;">Based on total course points</span>
+      </div>
+      <div id="gradePossibilities" class="possible-grid"></div>
+    </div>
+  </div>
+
+  <div class="scale">
+    <strong>Course letter-grade scale</strong>
+    <div class="scale-grid" style="margin-top:12px;">
+      <div><strong>A</strong><br><span class="muted">880+ points</span></div>
+      <div><strong>B</strong><br><span class="muted">780–879</span></div>
+      <div><strong>C</strong><br><span class="muted">680–779</span></div>
+      <div><strong>D</strong><br><span class="muted">540–679</span></div>
+      <div><strong>F</strong><br><span class="muted">Below 540</span></div>
+    </div>
+  </div>
+
+  <button id="resetGradeWidget" type="button">Reset</button>
+
+  <p class="note">
+    Maximum possible final grade assumes every point not yet available is earned.
+    Points already available but not earned are treated as points that can no longer be recovered.
+  </p>
+</div>
+
+<script>
+(() => {
+  const root = document.getElementById('chem101-grade-widget');
+
+  const categories = [
+    { name: 'Lecture Videos', total: 50 },
+    { name: 'Best Choice / Concept Builder / Quiz', total: 100 },
+    { name: 'In-Class Exercises', total: 150 },
+    { name: 'Labs', total: 300 },
+    { name: 'Exam 1', total: 80 },
+    { name: 'Exam 2', total: 80 },
+    { name: 'Exam 3', total: 80 },
+    { name: 'Comprehensive Final Exam', total: 160 }
+  ];
+
+  const gradeScale = [
+    { grade: 'A', min: 880 },
+    { grade: 'B', min: 780 },
+    { grade: 'C', min: 680 },
+    { grade: 'D', min: 540 }
+  ];
+
+  const rows = root.querySelector('#gradeRows');
+  const validation = root.querySelector('#validation');
+  const resultsArea = root.querySelector('#resultsArea');
+  const waitingMessage = root.querySelector('#waitingMessage');
+
+  categories.forEach((cat, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${cat.name}</strong></td>
+      <td class="right">${cat.total}</td>
+      <td>
+        <label style="position:absolute;left:-10000px;" for="earned-${i}">${cat.name} points earned</label>
+        <input id="earned-${i}" type="number" min="0" max="${cat.total}" step="0.01" inputmode="decimal" placeholder="Enter points">
+      </td>
+      <td>
+        <label style="position:absolute;left:-10000px;" for="available-${i}">${cat.name} points available thus far</label>
+        <input id="available-${i}" type="number" min="0" max="${cat.total}" step="0.01" inputmode="decimal" placeholder="Enter points">
+      </td>
+      <td id="future-${i}" class="right">${cat.total}</td>`;
+    rows.appendChild(tr);
+  });
+
+  function parseInput(input) {
+    if (input.value.trim() === '') return null;
+    const n = Number.parseFloat(input.value);
+    return Number.isFinite(n) ? Math.max(0, n) : null;
+  }
+
+  function fmt(n) {
+    return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+  }
+
+  function pct(n) {
+    return `${n.toFixed(1)}%`;
+  }
+
+  function finalLetter(points) {
+    if (points >= 880) return 'A';
+    if (points >= 780) return 'B';
+    if (points >= 680) return 'C';
+    if (points >= 540) return 'D';
+    return 'F';
+  }
+
+  function currentLetter(earned, available) {
+    if (available <= 0) return '—';
+    return finalLetter((earned / available) * 1000);
+  }
+
+  function updateFuturePointsFromAvailable() {
+    let availableEnteredTotal = 0;
+
+    categories.forEach((cat, i) => {
+      const available = parseInput(root.querySelector(`#available-${i}`));
+      const clampedAvailable = available === null ? 0 : Math.min(available, cat.total);
+      root.querySelector(`#future-${i}`).textContent = fmt(cat.total - clampedAvailable);
+      availableEnteredTotal += clampedAvailable;
+    });
+
+    root.querySelector('#futureTotalCell').textContent = fmt(1000 - availableEnteredTotal);
+  }
+
+  function clearGradeResults() {
+    root.querySelector('#earnedTotalCell').textContent = '—';
+    root.querySelector('#availableTotalCell').textContent = '—';
+    resultsArea.classList.add('hidden');
+    waitingMessage.classList.remove('hidden');
+    updateFuturePointsFromAvailable();
+  }
+
+  function recalc() {
+    updateFuturePointsFromAvailable();
+
+    let earnedTotal = 0;
+    let availableTotal = 0;
+    let completedRows = 0;
+    let incompletePair = false;
+    let invalid = false;
+    const problems = [];
+
+    categories.forEach((cat, i) => {
+      const earnedInput = root.querySelector(`#earned-${i}`);
+      const availableInput = root.querySelector(`#available-${i}`);
+      let earned = parseInput(earnedInput);
+      let available = parseInput(availableInput);
+
+      const oneEntered =
+        (earned !== null && available === null) ||
+        (earned === null && available !== null);
+
+      if (oneEntered) incompletePair = true;
+
+      if (earned === null || available === null) return;
+
+      completedRows++;
+
+      if (earned > cat.total) {
+        earned = cat.total;
+        earnedInput.value = cat.total;
+      }
+      if (available > cat.total) {
+        available = cat.total;
+        availableInput.value = cat.total;
+      }
+
+      if (earned > available) {
+        invalid = true;
+        problems.push(`${cat.name}: points earned cannot exceed points available thus far.`);
+      }
+
+      earnedTotal += earned;
+      availableTotal += available;
+    });
+
+    updateFuturePointsFromAvailable();
+
+    if (incompletePair) {
+      validation.textContent =
+        'Complete both Points earned and Points available thus far for each category you have started entering.';
+      validation.style.display = 'block';
+      clearGradeResults();
+      return;
+    }
+
+    if (invalid) {
+      validation.textContent = problems.join(' ');
+      validation.style.display = 'block';
+      clearGradeResults();
+      return;
+    }
+
+    validation.textContent = '';
+    validation.style.display = 'none';
+
+    if (completedRows === 0) {
+      clearGradeResults();
+      return;
+    }
+
+    const remaining = 1000 - availableTotal;
+    const maxPoints = earnedTotal + remaining;
+    const currentPct = availableTotal > 0 ? (earnedTotal / availableTotal) * 100 : null;
+    const minFinalLetter = finalLetter(earnedTotal);
+    const maxFinalLetter = finalLetter(maxPoints);
+
+    root.querySelector('#earnedTotalCell').textContent = fmt(earnedTotal);
+    root.querySelector('#availableTotalCell').textContent = fmt(availableTotal);
+    root.querySelector('#futureTotalCell').textContent = fmt(remaining);
+    root.querySelector('#remainingPoints').textContent = fmt(remaining);
+    root.querySelector('#maxFinal').textContent = `${fmt(maxPoints)} pts`;
+    root.querySelector('#maxFinalDetail').textContent =
+      `${maxFinalLetter} · ${pct(maxPoints / 10)}`;
+    root.querySelector('#finalRange').textContent =
+      `${fmt(earnedTotal)}–${fmt(maxPoints)}`;
+    root.querySelector('#finalRangeDetail').textContent =
+      `${minFinalLetter} through ${maxFinalLetter}`;
+
+    if (currentPct === null) {
+      root.querySelector('#currentGrade').textContent = '—';
+      root.querySelector('#currentGradeDetail').textContent =
+        'No available points have been entered yet';
+    } else {
+      root.querySelector('#currentGrade').textContent =
+        `${pct(currentPct)} (${currentLetter(earnedTotal, availableTotal)})`;
+      root.querySelector('#currentGradeDetail').textContent =
+        `${fmt(earnedTotal)} of ${fmt(availableTotal)} available points earned`;
+    }
+
+    const container = root.querySelector('#gradePossibilities');
+    container.innerHTML = '';
+
+    gradeScale.forEach(t => {
+      const needed = Math.max(0, t.min - earnedTotal);
+      const possible = maxPoints >= t.min;
+      let detail;
+
+      if (!possible) {
+        detail =
+          `No longer mathematically possible. Maximum possible total: ${fmt(maxPoints)} points (${maxFinalLetter}).`;
+      } else if (needed === 0) {
+        detail =
+          `Already secured: at least ${t.min} total course points have been earned.`;
+      } else if (remaining <= 0) {
+        detail = 'No course points remain.';
+      } else {
+        const reqPct = (needed / remaining) * 100;
+        detail =
+          `Need ${fmt(needed)} of the ${fmt(remaining)} remaining points (${pct(reqPct)} of remaining points).`;
+      }
+
+      const item = document.createElement('div');
+      item.className = 'possible-item';
+      item.innerHTML =
+        `<div class="possible-head"><strong>${t.grade} · ${t.min}+ pts</strong><span>${possible ? 'Still possible' : 'No longer possible'}</span></div>` +
+        `<div class="detail">${detail}</div>`;
+      container.appendChild(item);
+    });
+
+    waitingMessage.classList.add('hidden');
+    resultsArea.classList.remove('hidden');
+  }
+
+  root.addEventListener('input', event => {
+    if (event.target.matches('input[type="number"]')) recalc();
+  });
+
+  root.querySelector('#resetGradeWidget').addEventListener('click', () => {
+    root.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
+    validation.textContent = '';
+    validation.style.display = 'none';
+    clearGradeResults();
+  });
+
+  clearGradeResults();
+})();
+</script>
+</body>
+</html>
